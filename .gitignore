@@ -1,0 +1,41 @@
+# Virtual environment
+ml_env/
+venv/
+env/
+.venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Saved models (binary artifacts)
+project/models/*.pkl
+
+# Zip archives
+*.zip
+
+# Logs (regenerated on each run)
+project/logs/
+
+# OS files
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
