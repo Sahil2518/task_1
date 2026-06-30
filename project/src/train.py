@@ -7,7 +7,8 @@ from src.evaluate import (
     log_results,
     plot_confusion_matrix,
     evaluate_with_threshold,
-    plot_curves
+    plot_curves,
+    plot_partial_dependence
 )
 
 from src.preprocess import (
@@ -65,9 +66,9 @@ def main():
     ])
 
     param_grid = {
-        'classifier__C': [0.01, 0.1, 1.0, 10.0],
-        'classifier__penalty': ['l2'],
-        'classifier__class_weight': [None, 'balanced']
+        'classifier__learning_rate': [0.05, 0.1, 0.2],
+        'classifier__max_depth': [3, 4, 5],
+        'classifier__n_estimators': [50, 100]
     }
 
     print("\n  Starting GridSearchCV (optimizing for f1)...")
@@ -86,7 +87,7 @@ def main():
     # ── Step 4.5: Evaluation on Validation Set ──
     model_acc, _ = evaluate_model(
         model, X_val, y_val,
-        label="TUNED MODEL (LogisticRegression - Val Set)"
+        label="TUNED MODEL (GradientBoosting - Val Set)"
     )
     plot_confusion_matrix(
         model, X_val, y_val
@@ -144,9 +145,32 @@ def main():
 
     # ── Step 7: Log results (CSV) ──
     error_notes = f"tuned, grid search, threshold={custom_threshold}"
-    log_results(baseline_acc, acc_t, "LogisticRegression(Tuned)", error_notes, prec_t, rec_t, f1_t)
+    log_results(baseline_acc, acc_t, "GradientBoosting(Tuned)", error_notes, prec_t, rec_t, f1_t)
 
-    print("\n  Task 9 Tuning Complete. Test-set confirmation passed.")
+    # ── Step 8: Partial Dependence Plots (PDP) ──
+    import numpy as np
+    feature_importances = model.named_steps['classifier'].feature_importances_
+    
+    try:
+        transformed_features = model.named_steps['preprocessor'].get_feature_names_out()
+    except AttributeError:
+        transformed_features = feature_names
+
+    top_feature_indices = np.argsort(feature_importances)[-2:][::-1]
+    top_feature_names = [transformed_features[i] for i in top_feature_indices]
+    
+    X_val_transformed = model.named_steps['preprocessor'].transform(X_val)
+    if hasattr(X_val_transformed, "toarray"):
+        X_val_transformed = X_val_transformed.toarray()
+        
+    plot_partial_dependence(
+        model.named_steps['classifier'], 
+        X_val_transformed, 
+        features=top_feature_indices, 
+        feature_names=transformed_features
+    )
+
+    print("\n  Task 10 Tuning Complete. PDP generated and Test-set confirmation passed.")
 
 if __name__ == "__main__":
     main()

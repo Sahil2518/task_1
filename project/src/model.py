@@ -1,5 +1,5 @@
 from sklearn.dummy import DummyClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import GradientBoostingClassifier
 from src.config import CONFIG
 
 
@@ -12,9 +12,8 @@ def get_baseline():
 
 
 def get_model():
-    """Binary Logistic Regression model."""
-    return LogisticRegression(
-        random_state=CONFIG["seed"],
-        max_iter=1000
+    """Non-linear Gradient Boosting model."""
+    return GradientBoostingClassifier(
+        random_state=CONFIG["seed"]
     )
 

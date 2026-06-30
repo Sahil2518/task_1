@@ -207,3 +207,28 @@ def log_results(baseline_acc, model_acc, model_name, notes="", precision=None, r
     print(f"  Results saved to logs/results.csv")
 
     return results
+
+from sklearn.inspection import PartialDependenceDisplay
+
+def plot_partial_dependence(model, X_val, features, feature_names):
+    """Plot Partial Dependence for the top features."""
+    os.makedirs("logs", exist_ok=True)
+    
+    # Convert X_val to DataFrame if it's not already, for better feature name handling
+    X_val_df = pd.DataFrame(X_val, columns=feature_names) if not isinstance(X_val, pd.DataFrame) else X_val.copy()
+    
+    print(f"\n  Generating Partial Dependence Plots for top features: {features}")
+    
+    fig, ax = plt.subplots(figsize=(10, 5))
+    disp = PartialDependenceDisplay.from_estimator(
+        model,
+        X_val_df,
+        features=features,
+        ax=ax,
+        grid_resolution=50
+    )
+    plt.suptitle("Partial Dependence Plots (PDP)")
+    plt.tight_layout()
+    plt.savefig("logs/pdp_plot.png")
+    plt.close()
+    print("  Partial Dependence Plots saved to logs/pdp_plot.png")
