@@ -13,7 +13,7 @@ Iris Dataset from scikit-learn.
 - ColumnTransformer
 - Pipeline
 
-## Model
+## Model 
 - Baseline: DummyClassifier (majority class)
 - First Model: DecisionTreeClassifier
 
