@@ -9,14 +9,25 @@ from src.data import feature_engineering
 # ---------------------------------------------------------
 # DEPENDENCY & FAILURE HANDLING
 # ---------------------------------------------------------
-def load_artifacts():
-    """Load model pipeline with robust error handling."""
-    pipeline_path = "models/pipeline.pkl"
-    
-    if not os.path.exists(pipeline_path):
-        print(f"[ERROR] Missing model pipeline. Please run `python -m src.train` first.")
+def load_artifacts(prefer_ensemble: bool = True):
+    """
+    Load model pipeline with robust error handling.
+    Task 11: Prefers the ensemble pipeline if available.
+    Falls back to Task 10 single-model pipeline.
+    """
+    ensemble_path = "models/ensemble_pipeline.pkl"
+    fallback_path = "models/pipeline.pkl"
+
+    if prefer_ensemble and os.path.exists(ensemble_path):
+        pipeline_path = ensemble_path
+        print(f"[INFO] Loading ensemble model: {ensemble_path}")
+    elif os.path.exists(fallback_path):
+        pipeline_path = fallback_path
+        print(f"[INFO] Loading single model (fallback): {fallback_path}")
+    else:
+        print("[ERROR] No model found. Run `python -m src.train_ensemble` (Task 11) or `python -m src.train` (Task 10) first.")
         sys.exit(1)
-        
+
     try:
         pipeline = joblib.load(pipeline_path)
         return pipeline

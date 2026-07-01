@@ -232,3 +232,121 @@ def plot_partial_dependence(model, X_val, features, feature_names):
     plt.savefig("logs/pdp_plot.png")
     plt.close()
     print("  Partial Dependence Plots saved to logs/pdp_plot.png")
+
+
+# ══════════════════════════════════════════════════════════════════
+# Task 11 — Ensemble-specific evaluation helpers
+# ══════════════════════════════════════════════════════════════════
+
+def compare_models_table(results: dict, set_name: str = "Test"):
+    """
+    Pretty-print a table of {model_name: (acc, prec, rec, f1)} and
+    return a sorted DataFrame. 'results' keys are model names.
+    """
+    rows = []
+    for name, (acc, prec, rec, f1) in results.items():
+        rows.append({"Model": name, "Accuracy": acc, "Precision": prec, "Recall": rec, "F1": f1})
+    df = pd.DataFrame(rows).sort_values("F1", ascending=False).reset_index(drop=True)
+
+    print(f"\n{'='*65}")
+    print(f"  MODEL COMPARISON — {set_name} Set")
+    print(f"{'='*65}")
+    print(df.to_string(index=False, float_format="{:.4f}".format))
+    print(f"{'='*65}\n")
+    return df
+
+
+def diversity_matrix(named_predictions: dict, X_test, y_test):
+    """
+    Compute pairwise prediction *disagreement* between models.
+    High disagreement = diverse ensemble = better error averaging.
+    named_predictions: {name: np.array of binary predictions}
+    """
+    names = list(named_predictions.keys())
+    preds = {n: np.asarray(p) for n, p in named_predictions.items()}
+
+    print(f"\n{'='*55}")
+    print(f"  DIVERSITY MATRIX (pairwise disagreement rate)")
+    print(f"  (Higher = models disagree more = better diversity)")
+    print(f"{'='*55}")
+
+    matrix = {}
+    for i, a in enumerate(names):
+        row = {}
+        for j, b in enumerate(names):
+            if a == b:
+                row[b] = 0.0
+            else:
+                disagree = np.mean(preds[a] != preds[b])
+                row[b] = disagree
+        matrix[a] = row
+
+    df = pd.DataFrame(matrix)
+    print(df.to_string(float_format="{:.3f}".format))
+    print()
+    return df
+
+
+def plot_ensemble_comparison(results: dict, output_path: str = "logs/ensemble_comparison.png"):
+    """
+    Bar chart comparing F1 scores of all models.
+    Ensembles are highlighted in a distinct colour.
+    """
+    import matplotlib.pyplot as plt
+    os.makedirs("logs", exist_ok=True)
+
+    names = list(results.keys())
+    f1_scores = [v[3] for v in results.values()]   # (acc, prec, rec, f1)
+    colors = [
+        "#e07b54" if "Voting" in n or "Stacking" in n else "#5b8db8"
+        for n in names
+    ]
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    bars = ax.barh(names, f1_scores, color=colors, edgecolor="white", height=0.55)
+    ax.bar_label(bars, fmt="{:.4f}", padding=4, fontsize=9)
+    ax.set_xlabel("F1-Score", fontsize=11)
+    ax.set_title("Task 11 — Ensemble vs. Single-Model F1 Comparison", fontsize=13, fontweight="bold")
+    ax.set_xlim(0, 1.05)
+    ax.invert_yaxis()
+    ax.grid(axis="x", linestyle="--", alpha=0.4)
+
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor="#e07b54", label="Ensemble"),
+        Patch(facecolor="#5b8db8", label="Single model"),
+    ]
+    ax.legend(handles=legend_elements, loc="lower right")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
+    print(f"  Ensemble comparison chart saved to {output_path}")
+
+
+def evaluate_ensemble_lift(single_results: dict, ensemble_results: dict):
+    """
+    Print the lift that the best ensemble achieves over the best single model.
+    single_results / ensemble_results: {name: (acc, prec, rec, f1)}
+    """
+    best_single_name = max(single_results, key=lambda k: single_results[k][3])
+    best_single_f1   = single_results[best_single_name][3]
+
+    best_ens_name = max(ensemble_results, key=lambda k: ensemble_results[k][3])
+    best_ens_f1   = ensemble_results[best_ens_name][3]
+
+    lift = best_ens_f1 - best_single_f1
+
+    print(f"\n{'='*55}")
+    print(f"  ENSEMBLE LIFT SUMMARY")
+    print(f"{'='*55}")
+    print(f"  Best single model : {best_single_name}  (F1={best_single_f1:.4f})")
+    print(f"  Best ensemble     : {best_ens_name}  (F1={best_ens_f1:.4f})")
+    print(f"  Lift              : {lift:+.4f}")
+    if lift > 0:
+        print(f"  Verdict: Ensemble BEATS best single model ✅")
+    elif lift == 0:
+        print(f"  Verdict: Ensemble TIES best single model (no lift)")
+    else:
+        print(f"  Verdict: Ensemble is WORSE than best single model ❌")
+    print(f"{'='*55}\n")
+    return lift
