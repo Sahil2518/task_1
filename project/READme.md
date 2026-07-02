@@ -1,4 +1,4 @@
-# 🧠 PlaceMux — Task 11: Ensemble Learning
+# 🧠 PlaceMux — Task 11 & 12: Ensemble & Calibration
 
 > **Phase 1 Industry Immersion · AI/ML Developer Track**  
 > Altrodav Technologies Pvt. Ltd.
@@ -7,11 +7,13 @@
 
 ## Objective
 
-Combine multiple diverse base models using ensemble methods (Voting + Stacking) to achieve more accurate and robust predictions than any single model alone.
+**Task 11:** Combine multiple diverse base models using ensemble methods (Voting + Stacking) to achieve more accurate and robust predictions than any single model alone.
+
+**Task 12:** Deliver a production-grade binary classification model with calibrated, decision-ready outputs and cost-optimal threshold selection.
 
 ---
 
-## Ensemble Architecture
+## Task 11: Ensemble Architecture
 
 Three **deliberately diverse** base models are combined:
 
@@ -111,26 +113,36 @@ project/
 │   ├── preprocess.py       # ColumnTransformer (impute + scale + encode)
 │   ├── model.py            # Task 10: GradientBoosting baseline
 │   ├── ensemble.py         # Task 11: 3 base models + Voting + Stacking
+│   ├── calibrate.py        # Task 12: Calibration, thresholding, and evaluation utilities
 │   ├── train.py            # Task 10 training script
-│   ├── train_ensemble.py   # Task 11 training script ← main entry point
+│   ├── train_ensemble.py   # Task 11 training script
+│   ├── train_task12.py     # Task 12 training script ← main entry point for calibrated model
 │   ├── evaluate.py         # All evaluation utilities (shared)
 │   └── predict.py          # Inference engine (prefers ensemble model)
 ├── models/
+│   ├── calibrated_pipeline.pkl # Best calibrated model (Task 12)
 │   ├── ensemble_pipeline.pkl   # Best ensemble (Task 11)
 │   ├── lr_pipeline.pkl
 │   ├── rf_pipeline.pkl
 │   ├── gb_pipeline.pkl
 │   └── pipeline.pkl            # Task 10 single model
 ├── logs/
+│   ├── task12_operating_point.json # Task 12 configuration and metrics
+│   ├── calibration_curve.png   # Task 12 reliability diagram
+│   ├── threshold_analysis.png  # Task 12 threshold selection
+│   ├── calibrated_confusion_matrix.png # Task 12 optimal CM
+│   ├── fold_stability.png      # Task 12 cross-fold F1 stability
+│   ├── segment_evaluation.png  # Task 12 fairness check
 │   ├── ensemble_metrics.json   # Task 11 metrics
-│   ├── ensemble_comparison.png # F1 bar chart
+│   ├── ensemble_comparison.png # Task 11 F1 bar chart
 │   ├── ensemble_comparison.csv
 │   ├── confusion_matrix.png
 │   ├── roc_curve.png
 │   ├── pr_curve.png
 │   └── pdp_plot.png
-├── app.py                  # Gradio live demo (3 tabs)
-├── run_task11.bat          # One-click: train + launch
+├── app.py                  # Gradio live demo (6 tabs covering Tasks 11 & 12)
+├── run_task11.bat          # One-click: train ensemble + launch
+├── run_task12.bat          # One-click: train calibrated model + launch
 └── requirements.txt
 ```
 
@@ -138,9 +150,14 @@ project/
 
 ## How to Run
 
-### Train the Ensemble
+### Train the Ensemble (Task 11)
 ```bash
 python -m src.train_ensemble
+```
+
+### Train the Calibrated Classifier (Task 12)
+```bash
+python -m src.train_task12
 ```
 
 ### Launch Live Verification App
@@ -150,7 +167,7 @@ python app.py
 
 ### One-click (Windows)
 ```
-run_task11.bat
+run_task12.bat
 ```
 
 App runs at `http://localhost:7860` with a public `gradio.live` share link.
@@ -165,9 +182,48 @@ App runs at `http://localhost:7860` with a public `gradio.live` share link.
 | Stacking fold leakage | `StackingClassifier` uses `cv=5` OOF — no test data seen during meta-training |
 | Ignoring inference cost | Complexity vs. latency trade-off documented above |
 | Honest evaluation | All final numbers reported on a sealed test set, never touched during training |
+| Uncalibrated probabilities | Wrapped model in `CalibratedClassifierCV` with isotonic regression (Task 12) |
+| Hidden per-segment failure | Checked F1 score across `projects_completed` subgroups (Task 12) |
+| No documented operating point | Stored explicitly as JSON: Threshold=0.715 with cost-weighted rationale (Task 12) |
 
 ---
 
 ## Reproducibility
 
-All runs use `random_state=42` (defined in `src/config.py`). Re-running `python -m src.train_ensemble` produces identical results.
+All runs use `random_state=42` (defined in `src/config.py`). Re-running `python -m src.train_task12` produces identical results.
+
+---
+
+## Task 12: Calibration and Thresholding Results
+
+The final production model (`models/calibrated_pipeline.pkl`) uses a Gradient Boosting baseline calibrated via `CalibratedClassifierCV`.
+
+### 1. Calibration Validation
+Before calibration, the base GB model had a Brier Score of `0.1541`. After applying Isotonic Regression (CV=5), the Brier Score improved to `0.1374`, demonstrating probabilities that are significantly closer to true likelihoods.
+
+![Calibration Curve](logs/calibration_curve.png)
+
+### 2. Cost-Optimal Threshold
+Instead of using a default `0.5` threshold, we assign business costs to errors:
+* False Positives (FP) cost `1.0x` (predicting someone is placed when they are not)
+* False Negatives (FN) cost `2.0x` (missing a candidate who actually gets placed is worse)
+
+By sweeping all possible thresholds, we found that the threshold of **0.715** minimizes total cost.
+
+![Threshold Analysis](logs/threshold_analysis.png)
+
+### 3. Stability and Segment Fairness
+The final model is proven stable and fair before being deployed:
+* **Cross-Fold Stability:** `Mean F1 = 0.8742 ± 0.0125` across 5 StratifiedKFold splits. (Standard deviation < 0.03 marks the model as highly stable).
+* **Segment Evaluation:** Verified across the `projects_completed` feature to ensure no sub-group is being silently penalized.
+
+![Segment Evaluation](logs/segment_evaluation.png)
+![Fold Stability](logs/fold_stability.png)
+
+### 4. Final Confusion Matrix (at threshold=0.715)
+Tested on the strictly held-out dataset (300 rows):
+
+![Calibrated Confusion Matrix](logs/calibrated_confusion_matrix.png)
+
+- **FPR (False Alarm Rate):** 0.865
+- **FNR (Miss Rate):** 0.073 (Driven down by setting FN cost to 2.0x)

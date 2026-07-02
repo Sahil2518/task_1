@@ -9,23 +9,28 @@ from src.data import feature_engineering
 # ---------------------------------------------------------
 # DEPENDENCY & FAILURE HANDLING
 # ---------------------------------------------------------
-def load_artifacts(prefer_ensemble: bool = True):
+def load_artifacts(prefer_calibrated: bool = True, prefer_ensemble: bool = False):
     """
     Load model pipeline with robust error handling.
+    Task 12: Prefers the calibrated pipeline if available.
     Task 11: Prefers the ensemble pipeline if available.
     Falls back to Task 10 single-model pipeline.
     """
+    calibrated_path = "models/calibrated_pipeline.pkl"
     ensemble_path = "models/ensemble_pipeline.pkl"
     fallback_path = "models/pipeline.pkl"
 
-    if prefer_ensemble and os.path.exists(ensemble_path):
+    if prefer_calibrated and os.path.exists(calibrated_path):
+        pipeline_path = calibrated_path
+        print(f"[INFO] Loading calibrated model: {calibrated_path}")
+    elif prefer_ensemble and os.path.exists(ensemble_path):
         pipeline_path = ensemble_path
         print(f"[INFO] Loading ensemble model: {ensemble_path}")
     elif os.path.exists(fallback_path):
         pipeline_path = fallback_path
         print(f"[INFO] Loading single model (fallback): {fallback_path}")
     else:
-        print("[ERROR] No model found. Run `python -m src.train_ensemble` (Task 11) or `python -m src.train` (Task 10) first.")
+        print("[ERROR] No model found. Run `python -m src.train_task12` (Task 12), `python -m src.train_ensemble` (Task 11) or `python -m src.train` (Task 10) first.")
         sys.exit(1)
 
     try:
