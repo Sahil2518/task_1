@@ -1,0 +1,53 @@
+{
+    "artifact": {
+        "name": "placemux_pipeline_v1.0.0.joblib",
+        "version": "1.0.0",
+        "path": "models\\task19\\placemux_pipeline_v1.0.0.joblib",
+        "sha256": "e3d4536680d221ffb05ffe1f0948b876ff3c2e4be73b59be8f35a0c46a8c57f0",
+        "size_bytes": 495995,
+        "saved_at": "2026-07-08T19:34:21.445791Z",
+        "source": "pre-trained (Task 12 calibrated_pipeline.pkl)"
+    },
+    "model": {
+        "type": "CalibratedClassifierCV",
+        "seed": 42,
+        "feature_names": [
+            "domain_score",
+            "aptitude_score",
+            "projects_completed",
+            "active_days",
+            "registration_month",
+            "total_score"
+        ],
+        "n_train_samples": 960,
+        "n_features": 6
+    },
+    "metrics_test": {
+        "accuracy": 0.8267,
+        "precision": 0.8289,
+        "recall": 0.996,
+        "f1_score": 0.9048
+    },
+    "library_versions": {
+        "python": "3.11.5",
+        "scikit_learn": "1.7.2",
+        "numpy": "2.2.6",
+        "pandas": "2.3.3",
+        "joblib": "1.5.2",
+        "fastapi": "0.138.2",
+        "pydantic": "2.13.4",
+        "uvicorn": "0.27.0",
+        "os": "Windows"
+    },
+    "lineage": {
+        "task": "Task 19 \u2014 Application Model Serializing",
+        "track": "PlaceMux Phase 1 Industry Immersion",
+        "description": "Serialised, versioned model+preprocessor bundle. Includes SHA-256 checksum for integrity verification and a metadata sidecar for full lineage traceability.",
+        "pitfalls_avoided": {
+            "preprocessor_bundled": true,
+            "version_in_filename": true,
+            "metadata_recorded": true,
+            "sha256_checksum": true
+        }
+    }
+}
